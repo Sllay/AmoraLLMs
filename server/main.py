@@ -1,37 +1,33 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from llama_cpp import Llama
-import os
 
 app = FastAPI()
 
-MODEL_PATH = "models/model.gguf"
+llm = Llama(
+    model_path="models/qwen.gguf",
+    n_ctx=2048,
+    n_threads=4
+)
 
-llm = None
-
-class Request(BaseModel):
-    text: str
-
-def load_model():
-    global llm
-    if llm is None:
-        llm = Llama(
-            model_path=MODEL_PATH,
-            n_ctx=2048,
-            n_threads=4
-        )
+class ChatRequest(BaseModel):
+    message: str
 
 @app.post("/chat")
-def chat(req: Request):
-    load_model()
+def chat(req: ChatRequest):
+    prompt = f"""### Usuário:
+{req.message}
+
+### Amora:
+"""
 
     output = llm(
-        req.text,
+        prompt,
         max_tokens=300,
-        temperature=0.9,
-        stop=["</s>"]
+        temperature=0.8,
+        stop=["###"]
     )
 
     return {
-        "reply": output["choices"][0]["text"]
+        "reply": output["choices"][0]["text"].strip()
     }
