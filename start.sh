@@ -1,7 +1,12 @@
 #!/bin/bash
 
-echo "🚀 Baixando modelo se necessário..."
-python download_model.py
+mkdir -p models
 
-echo "🔥 Iniciando servidor..."
+if [ ! -f models/qwen.gguf ]; then
+  echo " Baixando modelo Qwen..."
+  wget -O models/qwen.gguf \
+  https://huggingface.co/TheBloke/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct.Q4_K_M.gguf
+fi
+
+echo " Iniciando servidor..."
 uvicorn server.main:app --host 0.0.0.0 --port 10000
