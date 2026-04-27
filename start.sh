@@ -9,4 +9,4 @@ if [ ! -f models/qwen.gguf ]; then
 fi
 
 echo " Iniciando servidor..."
-uvicorn server.main:app --host 0.0.0.0 --port 10000
+uvicorn server.main:app --host 0.0.0.0 --port $PORT
