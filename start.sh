@@ -2,33 +2,34 @@
 
 set -e
 
-echo " Iniciando AmoraLLM..."
+echo "🚀 Iniciando AmoraLLM..."
 
 mkdir -p models
 
 MODEL_PATH="models/qwen.gguf"
 
 # -----------------------------
-# FUN��O: validar GGUF
+# VALIDAR GGUF
 # -----------------------------
 validate_model() {
     if [ ! -f "$MODEL_PATH" ]; then
         return 1
     fi
 
-    # verifica se � arquivo GGUF v�lido
+    # verifica header GGUF
     if head -c 4 "$MODEL_PATH" | grep -q "GGUF"; then
         return 0
     else
+        echo "❌ Arquivo não é GGUF válido"
         return 1
     fi
 }
 
 # -----------------------------
-# FUN��O: baixar modelo grande (7B split)
+# DOWNLOAD QWEN 7B (split)
 # -----------------------------
-download_qwen_7b() {
-    echo " Baixando Qwen 7B (split)..."
+download_qwen() {
+    echo "📥 Baixando Qwen 7B..."
 
     wget -O models/part1.gguf \
     https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf
@@ -36,50 +37,51 @@ download_qwen_7b() {
     wget -O models/part2.gguf \
     https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf
 
-    echo " Fazendo merge..."
+    echo "🔧 Juntando partes..."
     cat models/part1.gguf models/part2.gguf > "$MODEL_PATH"
 
-    rm models/part1.gguf models/part2.gguf
+    rm -f models/part1.gguf models/part2.gguf
 }
 
 # -----------------------------
-# FUN��O: fallback modelo leve
+# FALLBACK (leve)
 # -----------------------------
 download_fallback() {
-    echo " Usando modelo fallback (1.5B)..."
+    echo "⚠️ Baixando modelo leve (TinyLlama)..."
 
     wget -O "$MODEL_PATH" \
     https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-GGUF/resolve/main/tinyllama-1.1b-chat.Q4_K_M.gguf
 }
 
 # -----------------------------
-# MAIN FLOW
+# FLOW
 # -----------------------------
 
 if validate_model; then
-    echo " Modelo j� existe e � v�lido"
+    echo "✅ Modelo já válido"
 else
-    echo " Modelo inv�lido ou inexistente"
+    echo "❌ Modelo não encontrado ou inválido"
 
-    # tenta baixar 7B
-    if download_qwen_7b; then
+    if download_qwen; then
         if validate_model; then
-            echo " Qwen 7B pronto"
+            echo "✅ Qwen pronto"
         else
-            echo " Falha no modelo 7B"
+            echo "❌ Qwen corrompido"
             download_fallback
         fi
     else
-        echo " Erro no download 7B"
+        echo "❌ Falha no download Qwen"
         download_fallback
     fi
 fi
 
 # valida final
 if ! validate_model; then
-    echo " ERRO CR�TICO: nenhum modelo v�lido"
+    echo "💥 ERRO: nenhum modelo válido disponível"
     exit 1
 fi
 
-echo " Iniciando servidor..."
-uvicorn server.main:app --host 0.0.0.0 --port $PORT
+echo "🚀 Modelo OK, iniciando API..."
+
+# IMPORTANTE: só inicia depois de tudo pronto
+exec uvicorn server.main:app --host 0.0.0.0 --port $PORT
